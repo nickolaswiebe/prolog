@@ -97,7 +97,17 @@ function compile_relation(name, rules) {
 	}`;
 }
 
-console.log(compile_relation("append", [
-	[[[], "Q", "Q"]],
-	[[["pair", "H", "A"], "B", ["pair", "H", "Q"]], ["append", "A", "B", "Q"]]
+function compile(code) {
+	const funcs = {};
+	for(const [[name, ...args], ...clauses] of code)
+		funcs[name] = (funcs[name] || []).concat([[args, ...clauses]]);
+	const ret = [];
+	for(const name in funcs)
+		ret.push(compile_relation(name, funcs[name]));
+	return ret.join("\n");
+}
+
+console.log(compile([
+	[["append", [], "Q", "Q"]],
+	[["append", ["pair", "H", "A"], "B", ["pair", "H", "Q"]], ["append", "A", "B", "Q"]]
 ]));
