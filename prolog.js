@@ -96,10 +96,22 @@ function compile_relation(name, rules) {
 		${rules.map(compile_rule).join("")}
 	}`;
 }
-
+function parse(code) {
+	code = code.replace(/#.*$/gm,"");
+	code = code.replace(/[()]/g," $& ");
+	code = code.replace(/\s+/g," ");
+	code = code.replace(/\b \(/g,",(");
+	code = code.replace(/\) \b/g,"),");
+	code = code.replace(/\b \b/g,",");
+	code = code.replace(/\) \(/g,"),(");
+	code = code.replace(/\b\w+\b/g,"'$&'");
+	code = code.replace(/\(/g,"[");
+	code = code.replace(/\)/g,"]");
+	return new Function(`return [${code}];`)();
+}
 function compile(code) {
 	const funcs = {};
-	for(const [[name, ...args], ...clauses] of code)
+	for(const [[name, ...args], ...clauses] of parse(code))
 		funcs[name] = (funcs[name] || []).concat([[args, ...clauses]]);
 	const ret = [];
 	for(const name in funcs)
@@ -107,7 +119,7 @@ function compile(code) {
 	return ret.join("\n");
 }
 
-console.log(compile([
-	[["append", [], "Q", "Q"]],
-	[["append", ["pair", "H", "A"], "B", ["pair", "H", "Q"]], ["append", "A", "B", "Q"]]
-]));
+console.log(compile(`
+	((append () Q Q))
+	((append (pair H A) B (pair H Q)) (append A B Q))
+`));
