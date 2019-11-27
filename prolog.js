@@ -19,6 +19,7 @@ function Dot(head, tail) {
 	return {type: DOT, head: head, tail: tail};
 }
 
+// term unification
 function *unify(a, b) {
 	// follow REFs to the correct node
 	while(a.type == REF) a = a.head;
@@ -60,6 +61,19 @@ function *unify(a, b) {
 	}
 }
 
+let nvar = 0;
+function str(expr) {
+	// follow REFs as before
+	while(expr.type == REF) expr = expr.head;
+	if(expr.type == VAR)
+		return `_${expr.tail = expr.tail || nvar++}`;
+	if(expr.type == SYM) return expr.head;
+	let items = [];
+	do { items.push(str(expr.head)); expr = expr.tail; }
+	while(expr.type == DOT);
+	return `(${items.join(` `)})`;
+}
+
 // compiler
 function is_var(sym) {
 	return /^[A-Z]/.test(sym);
@@ -88,7 +102,7 @@ function compile_clause([relation, ...args]) {
 function compile_rule([head, ...clauses]) {
 	return `for(const _ of unify($Args, ${compile_expr(head)}))
 		${clauses.map(compile_clause).join("")}
-		yield null;`;
+		yield $Args;`;
 }
 function compile_relation(name, rules) {
 	return `function* ${name}($Args) {
@@ -119,7 +133,21 @@ function compile(code) {
 	return ret.join("\n");
 }
 
-console.log(compile(`
-	((append () Q Q))
-	((append (pair H A) B (pair H Q)) (append A B Q))
-`));
+const code = `
+((append () Q Q))
+((append (pair H A) B (pair H Q)) (append A B Q))
+((main (A B Q)) (append A B Q))
+`;
+
+let answers = new Function(`
+	// in order to make these functions/values available, we have to
+	// explicitly import them into the new Function()
+	const [VAR, REF, SYM, DOT] = [0, 1, 2, 3];
+	${unify}
+	${Var} ${Sym} ${Dot}
+	${compile(code)}
+	return main(Var());
+`)();
+
+for(answer of answers)
+	console.log(str(answer));
