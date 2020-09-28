@@ -34,22 +34,17 @@ const compile = (function() {
 				return `Sym("${expr}")`;
 	}
 	function compile_clause([relation, ...args]) {
-		return `\tfor(const _ of ${relation}(${compile_expr(args)}))`;
+		return `\tfor(const _ of ${relation}(${compile_expr(args)}))\n`;
 	}
 	function compile_rule([head, ...clauses]) {
-		return `
-	for(const _ of unify($Args, ${compile_expr(head)}))
-${clauses.map(compile_clause).join("")}
-	yield $Args;\n`;
+		return `\tfor(const _ of unify($Args, ${compile_expr(head)}))
+${clauses.map(compile_clause).join("")}\t\tyield $Args;\n`;
 	}
 	function compile_var(name) {
 		return `\tconst ${name} = Var();\n`;
 	}
 	function compile_relation(name, rules) {
-		return `function* ${name}($Args) {
-	${vars(rules).map(compile_var).join("")}
-	${rules.map(compile_rule).join("")}
-}\n`;
+		return `function* ${name}($Args) {\n${vars(rules).map(compile_var).join("")}${rules.map(compile_rule).join("")}}\n`;
 	}
 	function compile(code) {
 		const funcs = {};
@@ -58,7 +53,7 @@ ${clauses.map(compile_clause).join("")}
 		const ret = [];
 		for(const name in funcs)
 			ret.push(compile_relation(name, funcs[name]));
-		return ret.join("\n");
+		return ret.join("");
 	}
 	return function(code) {
 		return compile(parse(code));
@@ -161,5 +156,5 @@ let code = compile(`
 
 console.log(code);
 
-for(answer of execute(code))
-	console.log(answer);
+//for(answer of execute(code))
+//	console.log(answer);
